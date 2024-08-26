@@ -336,7 +336,7 @@ class ChatCerebras(ChatOpenAI):
             raise ValueError("n must be 1 when streaming.")
 
         values["cerebras_api_key"] = convert_to_secret_str(
-            get_from_dict_or_env(values, "cerebras_api_key", "CEREBRAS_API_KEY")
+            get_from_dict_or_env(values, "cerebras_api_key", "CEREBRAS_API_KEY", "")
         )
         values["cerebras_api_base"] = os.getenv(
             "CEREBRAS_API_BASE", values["cerebras_api_base"]
@@ -353,9 +353,11 @@ class ChatCerebras(ChatOpenAI):
                 else None
             ),
             # Ensure we always fallback to the Cerebras API url.
-            "base_url": values["cerebras_api_base"]
-            if values["cerebras_api_base"]
-            else CEREBRAS_BASE_URL,
+            "base_url": (
+                values["cerebras_api_base"]
+                if values["cerebras_api_base"]
+                else CEREBRAS_BASE_URL
+            ),
             "timeout": values["request_timeout"],
             "max_retries": values["max_retries"],
             "default_headers": values["default_headers"],
