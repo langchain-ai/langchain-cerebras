@@ -1,14 +1,7 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
 import os
-from typing import (
-    Any,
-    AsyncIterator,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-)
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, cast
 
 import openai
 from langchain_core.callbacks import (
@@ -25,17 +18,14 @@ from langchain_core.utils import (
 )
 
 # We ignore the "unused imports" here since we want to reexport these from this package.
-from langchain_openai.chat_models.base import (  # pyright: ignore # noqa F401
-    ChatOpenAI,
-    _convert_dict_to_message,
-    _convert_message_to_dict,
-    _format_message_content,
+from langchain_openai.chat_models.base import (
+    BaseChatOpenAI,
 )
 
 CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/"
 
 
-class ChatCerebras(ChatOpenAI):
+class ChatCerebras(BaseChatOpenAI):
     r"""ChatCerebras chat model.
 
     Setup:
@@ -416,11 +406,12 @@ class ChatCerebras(ChatOpenAI):
         **kwargs: Any,
     ) -> Iterator[ChatGenerationChunk]:
         if kwargs.get("tools"):
-            return [
-                super()._generate(messages, stop, run_manager, **kwargs).generations[0]
-            ]
+            yield cast(
+                ChatGenerationChunk,
+                super()._generate(messages, stop, run_manager, **kwargs).generations[0],
+            )
         else:
-            return super()._stream(messages, stop, run_manager, **kwargs)
+            yield from super()._stream(messages, stop, run_manager, **kwargs)
 
     async def _astream(
         self,
@@ -430,9 +421,13 @@ class ChatCerebras(ChatOpenAI):
         **kwargs: Any,
     ) -> AsyncIterator[ChatGenerationChunk]:
         if kwargs.get("tools"):
+            generation = await super()._agenerate(messages, stop, run_manager, **kwargs)
             yield (
-                await super()._agenerate(messages, stop, run_manager, **kwargs)
-            ).generations[0]
+                cast(
+                    ChatGenerationChunk,
+                    generation.generations[0],
+                )
+            )
         else:
             async for msg in super()._astream(messages, stop, run_manager, **kwargs):
                 yield msg
