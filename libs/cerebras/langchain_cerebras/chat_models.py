@@ -13,8 +13,8 @@ from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGenerationChunk
 from langchain_core.pydantic_v1 import Field, SecretStr, root_validator
 from langchain_core.utils import (
-    convert_to_secret_str,
     get_from_dict_or_env,
+    secret_from_env,
 )
 
 # We ignore the "unused imports" here since we want to reexport these from this package.
@@ -309,7 +309,10 @@ class ChatCerebras(BaseChatOpenAI):
 
     model_name: str = Field(alias="model")
     """Model name to use."""
-    cerebras_api_key: Optional[SecretStr] = Field(default=None, alias="api_key")
+    cerebras_api_key: Optional[SecretStr] = Field(
+        alias="api_key",
+        default_factory=secret_from_env("CEREBRAS_API_KEY", default=None),
+    )
     """Automatically inferred from env are `CEREBRAS_API_KEY` if not provided."""
     cerebras_api_base: Optional[str] = Field(
         default=CEREBRAS_BASE_URL, alias="base_url"
@@ -317,7 +320,7 @@ class ChatCerebras(BaseChatOpenAI):
 
     cerebras_proxy: Optional[str] = None
 
-    @root_validator()
+    @root_validator(pre=False, skip_on_failure=True)
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         if values["n"] < 1:
@@ -325,9 +328,6 @@ class ChatCerebras(BaseChatOpenAI):
         if values["n"] > 1 and values["streaming"]:
             raise ValueError("n must be 1 when streaming.")
 
-        values["cerebras_api_key"] = convert_to_secret_str(
-            get_from_dict_or_env(values, "cerebras_api_key", "CEREBRAS_API_KEY", "")
-        )
         values["cerebras_api_base"] = os.getenv(
             "CEREBRAS_API_BASE", values["cerebras_api_base"]
         )
