@@ -18,4 +18,4 @@ class TestCerebrasStandard(ChatModelUnitTests):
 
     @property
     def chat_model_params(self) -> dict:
-        return {"model": "llama3.1-8b", "stream_usage": True}
+        return {"model": "llama3.1-8b"}

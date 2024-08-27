@@ -16,11 +16,7 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
 
     @property
     def chat_model_params(self) -> dict:
-        return {"model": "llama3.1-8b", "stream_usage": True}
-
-    @pytest.mark.xfail(reason="Metadata streaming response not aligned with OpenAI yet")
-    def test_usage_metadata_streaming(self, model: BaseChatModel) -> None:
-        super().test_usage_metadata_streaming(model)
+        return {"model": "llama3.1-8b"}
 
     @pytest.mark.xfail(reason=("Not supported"))
     def test_structured_output(self, model: BaseChatModel) -> None:
