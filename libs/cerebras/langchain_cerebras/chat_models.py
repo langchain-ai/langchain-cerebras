@@ -1,15 +1,9 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import openai
-from langchain_core.callbacks import (
-    AsyncCallbackManagerForLLMRun,
-    CallbackManagerForLLMRun,
-)
 from langchain_core.language_models.chat_models import LangSmithParams
-from langchain_core.messages import BaseMessage
-from langchain_core.outputs import ChatGenerationChunk
 from langchain_core.utils import (
     from_env,
     secret_from_env,
@@ -379,38 +373,3 @@ class ChatCerebras(BaseChatOpenAI):
             )
             self.async_client = self.root_async_client.chat.completions
         return self
-
-    # Patch tool calling w/ streaming.
-    def _stream(
-        self,
-        messages: List[BaseMessage],
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> Iterator[ChatGenerationChunk]:
-        if kwargs.get("tools"):
-            yield cast(
-                ChatGenerationChunk,
-                super()._generate(messages, stop, run_manager, **kwargs).generations[0],
-            )
-        else:
-            yield from super()._stream(messages, stop, run_manager, **kwargs)
-
-    async def _astream(
-        self,
-        messages: List[BaseMessage],
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[ChatGenerationChunk]:
-        if kwargs.get("tools"):
-            generation = await super()._agenerate(messages, stop, run_manager, **kwargs)
-            yield (
-                cast(
-                    ChatGenerationChunk,
-                    generation.generations[0],
-                )
-            )
-        else:
-            async for msg in super()._astream(messages, stop, run_manager, **kwargs):
-                yield msg

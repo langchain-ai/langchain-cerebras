@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langchain-cerebras"
-version = "0.2.0"
+version = "0.3.0"
 description = "An integration package connecting Cerebras and LangChain"
 authors = []
 readme = "README.md"
