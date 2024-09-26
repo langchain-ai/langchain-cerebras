@@ -16,20 +16,8 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
 
     @property
     def chat_model_params(self) -> dict:
-        return {"model": "llama3.1-8b"}
+        return {"model": "llama3.1-70b"}
 
-    @pytest.mark.xfail(reason=("Not supported"))
-    def test_structured_output(self, model: BaseChatModel) -> None:
-        super().test_structured_output(model)
-
-    @pytest.mark.xfail(reason=("Not supported"))
-    def test_structured_output_pydantic_2_v1(self, model: BaseChatModel) -> None:
-        super().test_structured_output_pydantic_2_v1(model)
-
-    @pytest.mark.xfail(reason=("Not supported"))
-    def test_tool_calling_with_no_arguments(self, model: BaseChatModel) -> None:
-        super().test_tool_calling_with_no_arguments(model)
-
-    @pytest.mark.xfail(reason=("Not supported"))
+    @pytest.mark.xfail(reason=("Array input not supported"))
     def test_tool_message_histories_list_content(self, model: BaseChatModel) -> None:
         super().test_tool_message_histories_list_content(model)
