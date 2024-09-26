@@ -1,6 +1,6 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import openai
 from langchain_core.language_models.chat_models import LangSmithParams
