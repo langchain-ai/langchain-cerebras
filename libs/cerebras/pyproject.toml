@@ -23,9 +23,7 @@ optional = true
 pytest = "^7.4.3"
 pytest-asyncio = "^0.23.2"
 pytest-socket = "^0.7.0"
-langchain-core = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core" }
-langchain-openai = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/partners/openai" }
-langchain-tests = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/standard-tests" }
+langchain-tests = "0.3.1"
 
 [tool.poetry.group.codespell]
 optional = true
@@ -41,15 +39,11 @@ ruff = "^0.1.8"
 
 [tool.poetry.group.typing.dependencies]
 mypy = "^1.7.1"
-langchain-core = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core" }
-langchain-openai = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/partners/openai" }
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-langchain-core = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core" }
-langchain-openai = { git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/partners/openai" }
 
 [tool.poetry.group.test_integration]
 optional = true
