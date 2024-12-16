@@ -39,7 +39,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_cerebras import ChatCerebras
 
 chat = ChatCerebras(
-    model="llama3.1-70b",
+    model="llama-3.3-70b",
 )
 
 system = "You are an expert on animals who must answer questions in a manner that a 5 year old can understand."
