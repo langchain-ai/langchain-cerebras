@@ -53,7 +53,7 @@ class ChatCerebras(BaseChatOpenAI):
             from langchain_cerebras import ChatCerebras
 
             llm = ChatCerebras(
-                model="llama3.1-70b",
+                model="llama-3.3-70b",
                 temperature=0,
                 max_tokens=None,
                 timeout=None,
@@ -80,7 +80,7 @@ class ChatCerebras(BaseChatOpenAI):
                 content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
                 response_metadata={
                     'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                    'model_name': 'llama3.1-70b',
+                    'model_name': 'llama-3.3-70b',
                     'system_fingerprint': 'fp_679dff74c0',
                     'finish_reason': 'stop',
                 },
@@ -115,7 +115,7 @@ class ChatCerebras(BaseChatOpenAI):
             content='ore' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
             content=' programmer' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
             content='."' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='' response_metadata={'finish_reason': 'stop', 'model_name': 'llama3.1-70b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+            content='' response_metadata={'finish_reason': 'stop', 'model_name': 'llama-3.3-70b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
 
     Async:
         .. code-block:: python
@@ -134,7 +134,7 @@ class ChatCerebras(BaseChatOpenAI):
                 content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
                 response_metadata={
                     'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                    'model_name': 'llama3.1-70b',
+                    'model_name': 'llama-3.3-70b',
                     'system_fingerprint': 'fp_679dff74c0',
                     'finish_reason': 'stop',
                 },
@@ -146,7 +146,7 @@ class ChatCerebras(BaseChatOpenAI):
 
             from langchain_core.pydantic_v1 import BaseModel, Field
 
-            llm = ChatCerebras(model="llama3.1-70b")
+            llm = ChatCerebras(model="llama-3.3-70b")
 
             class GetWeather(BaseModel):
                 '''Get the current weather in a given location'''

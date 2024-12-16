@@ -16,7 +16,7 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
 
     @property
     def chat_model_params(self) -> dict:
-        return {"model": "llama3.1-70b"}
+        return {"model": "llama-3.3-70b"}
 
     @pytest.mark.xfail(reason=("Array input not supported"))
     def test_tool_message_histories_list_content(self, model: BaseChatModel) -> None:
