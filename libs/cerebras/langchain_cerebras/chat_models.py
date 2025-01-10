@@ -34,7 +34,7 @@ class ChatCerebras(BaseChatOpenAI):
     Key init args — completion params:
         model: str
             Name of model to use.
-        temperature: float
+        temperature: Optional[float]
             Sampling temperature.
         max_tokens: Optional[int]
             Max number of tokens to generate.
@@ -42,7 +42,7 @@ class ChatCerebras(BaseChatOpenAI):
     Key init args — client params:
         timeout: Union[float, Tuple[float, float], Any, None]
             Timeout for requests.
-        max_retries: int
+        max_retries: Optional[int]
             Max number of retries.
         api_key: Optional[str]
             Cerebras API key. If not passed in will be read from env var CEREBRAS_API_KEY.
@@ -318,9 +318,9 @@ class ChatCerebras(BaseChatOpenAI):
     @model_validator(mode="after")
     def validate_environment(self) -> Self:
         """Validate that api key and python package exists in environment."""
-        if self.n < 1:
+        if self.n is not None and self.n < 1:
             raise ValueError("n must be at least 1.")
-        if self.n > 1 and self.streaming:
+        if self.n is not None and self.n > 1 and self.streaming:
             raise ValueError("n must be 1 when streaming.")
 
         client_params = {
@@ -332,10 +332,11 @@ class ChatCerebras(BaseChatOpenAI):
             # Ensure we always fallback to the Cerebras API url.
             "base_url": self.cerebras_api_base,
             "timeout": self.request_timeout,
-            "max_retries": self.max_retries,
             "default_headers": self.default_headers,
             "default_query": self.default_query,
         }
+        if self.max_retries is not None:
+            client_params["max_retries"] = self.max_retries
 
         if self.cerebras_proxy and (self.http_client or self.http_async_client):
             raise ValueError(
