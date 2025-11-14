@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langchain-cerebras"
-version = "0.6.0"
+version = "0.7.0"
 description = "An integration package connecting Cerebras and LangChain"
 authors = []
 readme = "README.md"
@@ -12,9 +12,9 @@ license = "MIT"
 "Release Notes" = "https://github.com/langchain-ai/langchain-cerebras/releases"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-langchain-core = ">=0.3.29"
-langchain-openai = "^0.3.0"
+python = ">=3.10,<4.0"
+langchain-core = ">=0.3.29,<2.0.0"
+langchain-openai = ">=0.3.0,<2.0.0"
 
 [tool.poetry.group.test]
 optional = true
