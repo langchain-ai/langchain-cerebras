@@ -336,7 +336,8 @@ class ChatCerebras(BaseChatOpenAI):
         default=None,
         description=(
             "Level of reasoning effort for the gpt-oss-120b model. "
-            "Options: 'low' (minimal reasoning, faster), 'medium' (moderate reasoning), "
+            "Options: 'low' (minimal reasoning, faster), "
+            "'medium' (moderate reasoning), "
             "or 'high' (extensive reasoning, more thorough analysis)."
         ),
     )
