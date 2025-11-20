@@ -310,10 +310,13 @@ class ChatCerebras(BaseChatOpenAI):
         """Get the default parameters for calling the Cerebras API."""
         params = super()._default_params
         # Add Cerebras-specific reasoning parameters if set
-        if self.reasoning_effort is not None:
-            params["reasoning_effort"] = self.reasoning_effort
+        # Note: reasoning_effort is already handled by BaseChatOpenAI
+        # disable_reasoning is a nonstandard parameter for zai-glm-4.6
+        # and must be passed via extra_body
         if self.disable_reasoning is not None:
-            params["disable_reasoning"] = self.disable_reasoning
+            extra_body = params.get("extra_body") or {}
+            extra_body["disable_reasoning"] = self.disable_reasoning
+            params["extra_body"] = extra_body
         return params
 
     model_name: str = Field(alias="model")
