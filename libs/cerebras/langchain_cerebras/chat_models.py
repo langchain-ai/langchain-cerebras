@@ -1,6 +1,6 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import openai
 from langchain_core.language_models.chat_models import LangSmithParams
@@ -38,6 +38,10 @@ class ChatCerebras(BaseChatOpenAI):
             Sampling temperature.
         max_tokens: Optional[int]
             Max number of tokens to generate.
+        reasoning_effort: Optional[Literal["low", "medium", "high"]]
+            Level of reasoning effort for gpt-oss-120b model.
+        disable_reasoning: Optional[bool]
+            Whether to disable reasoning for zai-glm-4.6 model.
 
     Key init args — client params:
         timeout: Union[float, Tuple[float, float], Any, None]
@@ -301,6 +305,20 @@ class ChatCerebras(BaseChatOpenAI):
         params["ls_provider"] = "cerebras"
         return params
 
+    @property
+    def _default_params(self) -> Dict[str, Any]:
+        """Get the default parameters for calling the Cerebras API."""
+        params = super()._default_params
+        # Add Cerebras-specific reasoning parameters if set
+        # Note: reasoning_effort is already handled by BaseChatOpenAI
+        # disable_reasoning is a nonstandard parameter for zai-glm-4.6
+        # and must be passed via extra_body
+        if self.disable_reasoning is not None:
+            extra_body = params.get("extra_body") or {}
+            extra_body["disable_reasoning"] = self.disable_reasoning
+            params["extra_body"] = extra_body
+        return params
+
     model_name: str = Field(alias="model")
     """Model name to use."""
     cerebras_api_key: Optional[SecretStr] = Field(
@@ -314,6 +332,24 @@ class ChatCerebras(BaseChatOpenAI):
     )
 
     cerebras_proxy: str = Field(default_factory=from_env("CEREBRAS_PROXY", default=""))
+    reasoning_effort: Optional[Literal["low", "medium", "high"]] = Field(
+        default=None,
+        description=(
+            "Level of reasoning effort for the gpt-oss-120b model. "
+            "Options: 'low' (minimal reasoning, faster), "
+            "'medium' (moderate reasoning), "
+            "or 'high' (extensive reasoning, more thorough analysis)."
+        ),
+    )
+    """Reasoning effort level for gpt-oss-120b model."""
+    disable_reasoning: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Whether to disable reasoning for the zai-glm-4.6 model. "
+            "Set to True to disable reasoning, False (default) to enable."
+        ),
+    )
+    """Disable reasoning for zai-glm-4.6 model."""
 
     @model_validator(mode="after")
     def validate_environment(self) -> Self:
