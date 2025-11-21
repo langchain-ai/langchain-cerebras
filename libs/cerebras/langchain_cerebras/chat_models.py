@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Literal, Optional
 
 import openai
 from langchain_core.language_models.chat_models import LangSmithParams
+from langchain_core.messages import AIMessage
+from langchain_core.outputs import ChatResult
 from langchain_core.utils import (
     from_env,
     secret_from_env,
@@ -65,6 +67,37 @@ class ChatCerebras(BaseChatOpenAI):
                 # api_key="...",
                 # other params...
             )
+
+    Reasoning with gpt-oss-120b:
+        .. code-block:: python
+
+            llm = ChatCerebras(
+                model="gpt-oss-120b",
+                reasoning_effort="high"  # "low", "medium", or "high"
+            )
+            response = llm.invoke("What is the cube root of 50.653?")
+
+            # Reasoning is exposed as structured content blocks
+            for block in response.content:
+                if block["type"] == "reasoning_content":
+                    reasoning_text = block["reasoning_content"]["text"]
+                    print(f"Reasoning: {reasoning_text}")
+                elif block["type"] == "text":
+                    print(f"Answer: {block['text']}")
+
+    Reasoning with zai-glm-4.6:
+        .. code-block:: python
+
+            llm = ChatCerebras(
+                model="zai-glm-4.6",
+                disable_reasoning=False  # Enable reasoning
+            )
+            response = llm.invoke("Explain quantum computing")
+
+            # Same access pattern for reasoning content
+            for block in response.content:
+                if block["type"] == "reasoning_content":
+                    print(f"Reasoning: {block['reasoning_content']['text']}")
 
     Invoke:
         .. code-block:: python
@@ -410,3 +443,125 @@ class ChatCerebras(BaseChatOpenAI):
             )
             self.async_client = self.root_async_client.chat.completions
         return self
+
+    def _should_extract_reasoning(self) -> bool:
+        """Check if we should extract reasoning from the response.
+
+        Only extract reasoning for:
+        - gpt-oss-120b with reasoning_effort set
+        - zai-glm-4.6 with disable_reasoning set (to False)
+        """
+        model_lower = self.model_name.lower()
+
+        # Check for gpt-oss-120b with reasoning_effort
+        if "gpt-oss" in model_lower and self.reasoning_effort is not None:
+            return True
+
+        # Check for zai-glm-4.6 with reasoning enabled
+        if "zai-glm" in model_lower and self.disable_reasoning is False:
+            return True
+
+        return False
+
+    def _extract_reasoning_from_response(
+        self, response_dict: Dict[str, Any]
+    ) -> Optional[str]:
+        """Extract reasoning field from Cerebras API response.
+
+        Args:
+            response_dict: The API response dictionary
+
+        Returns:
+            The reasoning text if present, None otherwise
+        """
+        try:
+            choices = response_dict.get("choices", [])
+            if choices and len(choices) > 0:
+                message = choices[0].get("message", {})
+                return message.get("reasoning")
+        except (KeyError, IndexError, AttributeError, TypeError):
+            return None
+        return None
+
+    def _add_reasoning_to_message(
+        self, message: AIMessage, reasoning: str
+    ) -> AIMessage:
+        """Add reasoning content block to AIMessage.
+
+        Follows the AWS Bedrock pattern where reasoning is exposed as a content
+        block with type "reasoning_content". The reasoning block is placed BEFORE
+        the text content to indicate it represents the thinking that led to the answer.
+
+        Args:
+            message: The original AIMessage
+            reasoning: The reasoning text to add
+
+        Returns:
+            A new AIMessage with reasoning as a content block
+        """
+        if not reasoning:
+            return message
+
+        # Build content blocks list
+        content_blocks: List[Dict[str, Any]] = []
+
+        # Add reasoning block FIRST (reasoning comes before the answer)
+        reasoning_block = {
+            "type": "reasoning_content",
+            "reasoning_content": {"text": reasoning},
+        }
+        content_blocks.append(reasoning_block)
+
+        # Add existing content
+        if isinstance(message.content, str):
+            # Simple string content -> convert to text block
+            if message.content:  # Only add if not empty
+                content_blocks.append({"type": "text", "text": message.content})
+        elif isinstance(message.content, list):
+            # Already a list of content blocks -> extend
+            content_blocks.extend(message.content)
+
+        # Return new message with structured content
+        return message.model_copy(update={"content": content_blocks})
+
+    def _create_chat_result(
+        self,
+        response: Dict[str, Any] | Any,
+        generation_info: Optional[Dict] = None,
+    ) -> ChatResult:
+        """Override to extract and add reasoning content blocks.
+
+        Cerebras API returns reasoning in the message dict as:
+        {"role": "assistant", "content": "...", "reasoning": "..."}
+
+        We extract this and add it as a proper content block following the
+        langchain-aws Bedrock pattern, but ONLY for models that support reasoning
+        (gpt-oss-120b and zai-glm-4.6) and when reasoning parameters are set.
+
+        Args:
+            response: The API response
+            generation_info: Optional generation information
+
+        Returns:
+            ChatResult with reasoning content blocks if applicable
+        """
+        # Get the base result from parent class
+        result = super()._create_chat_result(response, generation_info)
+
+        # Only process reasoning for supported models with reasoning enabled
+        if not self._should_extract_reasoning():
+            return result
+
+        # Extract reasoning from raw response
+        response_dict = response if isinstance(response, dict) else response.model_dump()
+        reasoning = self._extract_reasoning_from_response(response_dict)
+
+        # If reasoning exists, add it to the message content
+        if reasoning and result.generations:
+            for generation in result.generations:
+                if isinstance(generation.message, AIMessage):
+                    generation.message = self._add_reasoning_to_message(
+                        generation.message, reasoning
+                    )
+
+        return result
