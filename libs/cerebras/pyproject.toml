@@ -13,8 +13,8 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-langchain-core = ">=0.3.29,<2.0.0"
-langchain-openai = ">=0.3.0,<2.0.0"
+langchain-core = ">=1.0.2,<2.0.0"
+langchain-openai = ">=1.0.0,<2.0.0"
 
 [tool.poetry.group.test]
 optional = true
