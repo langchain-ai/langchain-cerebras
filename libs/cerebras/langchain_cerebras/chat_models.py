@@ -1,7 +1,7 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
-from typing import Any, Dict, Iterator, List, Literal, Optional, Type, Union
 import warnings
+from typing import Any, Dict, Iterator, List, Literal, Optional, Type, Union
 
 import openai
 from langchain_core.callbacks import CallbackManagerForLLMRun
@@ -307,17 +307,17 @@ class ChatCerebras(BaseChatOpenAI):
                 model="gpt-oss-120b",
                 reasoning_effort="medium"
             )
-            
+
             full_reasoning = ""
             full_text = ""
-            
+
             for chunk in llm.stream("What is 2+2?"):
                 # Reasoning tokens are in additional_kwargs during streaming
                 if "reasoning" in chunk.additional_kwargs:
                     full_reasoning += chunk.additional_kwargs["reasoning"]
                 if isinstance(chunk.content, str):
                     full_text += chunk.content
-            
+
             print(f"Reasoning: {full_reasoning}")
             print(f"Answer: {full_text}")
 
@@ -414,7 +414,6 @@ class ChatCerebras(BaseChatOpenAI):
         ),
     )
     """Disable reasoning for zai-glm-4.6 model."""
-
 
     def _stream(
         self,
@@ -522,7 +521,14 @@ class ChatCerebras(BaseChatOpenAI):
         for generation in result.generations:
             msg = generation.message
             reasoning = msg.additional_kwargs.get("reasoning")
-            if reasoning:
+            # Only structure content if user explicitly requested reasoning
+            # via parameters, to maintain compatibility with standard tests
+            # that expect string content by default.
+            should_structure = (
+                self.reasoning_effort is not None or self.disable_reasoning is False
+            )
+
+            if reasoning and should_structure:
                 reasoning_block = {
                     "type": "reasoning_content",
                     "reasoning_content": {"text": reasoning},
