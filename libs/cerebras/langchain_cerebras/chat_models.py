@@ -1,9 +1,13 @@
 """Wrapper around Cerebras' Chat Completions API."""
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, Iterator, List, Literal, Optional, Type, Union
+import warnings
 
 import openai
+from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import LangSmithParams
+from langchain_core.messages import AIMessageChunk, BaseMessage, BaseMessageChunk
+from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from langchain_core.utils import (
     from_env,
     secret_from_env,
@@ -12,6 +16,8 @@ from langchain_core.utils import (
 # We ignore the "unused imports" here since we want to reexport these from this package.
 from langchain_openai.chat_models.base import (
     BaseChatOpenAI,
+    _convert_chunk_to_generation_chunk,
+    _handle_openai_bad_request,
 )
 from pydantic import Field, SecretStr, model_validator
 from typing_extensions import Self
@@ -240,24 +246,81 @@ class ChatCerebras(BaseChatOpenAI):
         ```
 
     Response metadata
-        ```python
-        ai_msg = llm.invoke(messages)
-        ai_msg.response_metadata
-        ```
+        .. code-block:: python
 
-        ```python
-        {
-            'token_usage': {
-                'completion_tokens': 4,
-                'prompt_tokens': 19,
-                'total_tokens': 23
-                },
-            'model_name': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-            'system_fingerprint': None,
-            'finish_reason': 'eos',
-            'logprobs': None
-        }
-        ```
+            ai_msg = llm.invoke(messages)
+            ai_msg.response_metadata
+
+        .. code-block:: python
+
+            {
+                'token_usage': {
+                    'completion_tokens': 4,
+                    'prompt_tokens': 19,
+                    'total_tokens': 23
+                    },
+                'model_name': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+                'system_fingerprint': None,
+                'finish_reason': 'eos',
+                'logprobs': None
+            }
+
+    Reasoning with gpt-oss-120b:
+        .. code-block:: python
+
+            llm = ChatCerebras(
+                model="gpt-oss-120b",
+                reasoning_effort="high"  # "low", "medium", or "high"
+            )
+            response = llm.invoke("What is the cube root of 50.653?")
+
+            # Reasoning is exposed as structured content blocks
+            for block in response.content:
+                if isinstance(block, dict):
+                    if block["type"] == "reasoning_content":
+                        reasoning_text = block["reasoning_content"]["text"]
+                        print(f"Reasoning: {reasoning_text}")
+                    elif block["type"] == "text":
+                        print(f"Answer: {block['text']}")
+
+    Reasoning with zai-glm-4.6:
+        .. code-block:: python
+
+            llm = ChatCerebras(
+                model="zai-glm-4.6",
+                disable_reasoning=False  # Enable reasoning
+            )
+            response = llm.invoke("Explain quantum computing")
+
+            # Same access pattern for reasoning content
+            for block in response.content:
+                if isinstance(block, dict):
+                    if block["type"] == "reasoning_content":
+                        print(f"Reasoning: {block['reasoning_content']['text']}")
+                    elif block["type"] == "text":
+                        print(f"Answer: {block['text']}")
+
+    Reasoning with streaming:
+        .. code-block:: python
+
+            llm = ChatCerebras(
+                model="gpt-oss-120b",
+                reasoning_effort="medium"
+            )
+            
+            full_reasoning = ""
+            full_text = ""
+            
+            for chunk in llm.stream("What is 2+2?"):
+                # Reasoning tokens are in additional_kwargs during streaming
+                if "reasoning" in chunk.additional_kwargs:
+                    full_reasoning += chunk.additional_kwargs["reasoning"]
+                if isinstance(chunk.content, str):
+                    full_text += chunk.content
+            
+            print(f"Reasoning: {full_reasoning}")
+            print(f"Answer: {full_text}")
+
     """  # noqa: E501
 
     @property
@@ -351,6 +414,132 @@ class ChatCerebras(BaseChatOpenAI):
         ),
     )
     """Disable reasoning for zai-glm-4.6 model."""
+
+
+    def _stream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> Iterator[ChatGenerationChunk]:
+        kwargs["stream"] = True
+        payload = self._get_request_payload(messages, stop=stop, **kwargs)
+        default_chunk_class: Type[BaseMessageChunk] = AIMessageChunk
+        base_generation_info = {}
+
+        if "response_format" in payload:
+            if self.include_response_headers:
+                warnings.warn(
+                    "Cannot currently include response headers when response_format is "
+                    "specified."
+                )
+            payload.pop("stream")
+            response_stream = self.root_client.beta.chat.completions.stream(**payload)
+            context_manager = response_stream
+        else:
+            if self.include_response_headers:
+                raw_response = self.client.with_raw_response.create(**payload)
+                response = raw_response.parse()
+                base_generation_info = {"headers": dict(raw_response.headers)}
+            else:
+                response = self.client.create(**payload)
+            context_manager = response
+        try:
+            with context_manager as response:
+                is_first_chunk = True
+                for chunk in response:
+                    if not isinstance(chunk, dict):
+                        chunk = chunk.model_dump()
+                    generation_chunk = _convert_chunk_to_generation_chunk(
+                        chunk,
+                        default_chunk_class,
+                        base_generation_info if is_first_chunk else {},
+                    )
+                    if generation_chunk is None:
+                        continue
+
+                    # Cerebras specific: extract reasoning from delta
+                    choices = chunk.get("choices", [])
+                    if choices:
+                        choice = choices[0]
+                        delta = choice.get("delta", {})
+                        reasoning = delta.get("reasoning")
+                        if reasoning:
+                            generation_chunk.message.additional_kwargs[
+                                "reasoning"
+                            ] = reasoning
+
+                    default_chunk_class = generation_chunk.message.__class__
+                    logprobs = (generation_chunk.generation_info or {}).get("logprobs")
+                    if run_manager:
+                        run_manager.on_llm_new_token(
+                            generation_chunk.text,
+                            chunk=generation_chunk,
+                            logprobs=logprobs,
+                        )
+                    is_first_chunk = False
+                    yield generation_chunk
+        except openai.BadRequestError as e:
+            _handle_openai_bad_request(e)
+        if hasattr(response, "get_final_completion") and "response_format" in payload:
+            final_completion = response.get_final_completion()
+            generation_chunk = self._get_generation_chunk_from_completion(
+                final_completion
+            )
+            if run_manager:
+                run_manager.on_llm_new_token(
+                    generation_chunk.text, chunk=generation_chunk
+                )
+            yield generation_chunk
+
+    def _create_chat_result(
+        self,
+        response: Union[dict, Any],
+        generation_info: Optional[Dict] = None,
+    ) -> ChatResult:
+        result = super()._create_chat_result(response, generation_info)
+        response_dict = (
+            response if isinstance(response, dict) else response.model_dump()
+        )
+
+        for i, res in enumerate(response_dict["choices"]):
+            message = res.get("message", {})
+            reasoning = message.get("reasoning")
+            if reasoning:
+                result.generations[i].message.additional_kwargs["reasoning"] = reasoning
+        return result
+
+    def _generate(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        result = super()._generate(messages, stop, run_manager, **kwargs)
+
+        for generation in result.generations:
+            msg = generation.message
+            reasoning = msg.additional_kwargs.get("reasoning")
+            if reasoning:
+                reasoning_block = {
+                    "type": "reasoning_content",
+                    "reasoning_content": {"text": reasoning},
+                }
+
+                if isinstance(msg.content, str):
+                    text_block = {"type": "text", "text": msg.content}
+                    if msg.content:
+                        msg.content = [reasoning_block, text_block]
+                    else:
+                        msg.content = [reasoning_block]
+                elif isinstance(msg.content, list):
+                    msg.content.insert(0, reasoning_block)
+
+                msg.additional_kwargs.pop("reasoning", None)
+
+        return result
 
     @model_validator(mode="after")
     def validate_environment(self) -> Self:
