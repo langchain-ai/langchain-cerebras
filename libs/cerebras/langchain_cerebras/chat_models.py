@@ -23,12 +23,12 @@ class ChatCerebras(BaseChatOpenAI):
     r"""ChatCerebras chat model.
 
     Setup:
-        Install ``langchain-cerebras`` and set environment variable ``CEREBRAS_API_KEY``.
+        Install `langchain-cerebras` and set environment variable `CEREBRAS_API_KEY`.
 
-        .. code-block:: bash
-
-            pip install -U langchain-cerebras
-            export CEREBRAS_API_KEY="your-api-key"
+        ```bash
+        pip install -U langchain-cerebras
+        export CEREBRAS_API_KEY="your-api-key"
+        ```
 
 
     Key init args — completion params:
@@ -49,225 +49,222 @@ class ChatCerebras(BaseChatOpenAI):
         max_retries: Optional[int]
             Max number of retries.
         api_key: Optional[str]
-            Cerebras API key. If not passed in will be read from env var CEREBRAS_API_KEY.
+            Cerebras API key. If not passed in will be read from env var `CEREBRAS_API_KEY`.
 
     Instantiate:
-        .. code-block:: python
+        ```python
+        from langchain_cerebras import ChatCerebras
 
-            from langchain_cerebras import ChatCerebras
-
-            llm = ChatCerebras(
-                model="llama-3.3-70b",
-                temperature=0,
-                max_tokens=None,
-                timeout=None,
-                max_retries=2,
-                # api_key="...",
-                # other params...
-            )
+        llm = ChatCerebras(
+            model="llama-3.3-70b",
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+            # api_key="...",
+            # other params...
+        )
+        ```
 
     Invoke:
-        .. code-block:: python
+        ```python
+        messages = [
+            (
+                "system",
+                "You are a helpful translator. Translate the user sentence to French.",
+            ),
+            ("human", "I love programming."),
+        ]
+        llm.invoke(messages)
+        ```
 
-            messages = [
-                (
-                    "system",
-                    "You are a helpful translator. Translate the user sentence to French.",
-                ),
-                ("human", "I love programming."),
-            ]
-            llm.invoke(messages)
-
-        .. code-block:: python
-
-            AIMessage(
-                content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
-                response_metadata={
-                    'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                    'model_name': 'llama-3.3-70b',
-                    'system_fingerprint': 'fp_679dff74c0',
-                    'finish_reason': 'stop',
-                },
-                id='run-377c2887-30ef-417e-b0f5-83efc8844f12-0',
-                usage_metadata={'input_tokens': 32, 'output_tokens': 20, 'total_tokens': 52})
+        ```python
+        AIMessage(
+            content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
+            response_metadata={
+                'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
+                'model_name': 'llama-3.3-70b',
+                'system_fingerprint': 'fp_679dff74c0',
+                'finish_reason': 'stop',
+            },
+            id='run-377c2887-30ef-417e-b0f5-83efc8844f12-0',
+            usage_metadata={'input_tokens': 32, 'output_tokens': 20, 'total_tokens': 52})
+        ```
 
     Stream:
-        .. code-block:: python
+        ```python
+        for chunk in llm.stream(messages):
+            print(chunk)
+        ```
 
-            for chunk in llm.stream(messages):
-                print(chunk)
-
-        .. code-block:: python
-
-            content='' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='The' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' translation' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' of' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' "' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='I' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' love' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' programming' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='"' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' to' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' French' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' is' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=':\n\n' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='"' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='J' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content="'" id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='ad' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='ore' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content=' programmer' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='."' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-            content='' response_metadata={'finish_reason': 'stop', 'model_name': 'llama-3.3-70b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        ```python
+        content='' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='The' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' translation' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' of' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' "' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='I' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' love' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' programming' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='"' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' to' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' French' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' is' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=':\n\n' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='"' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='J' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content="'" id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='ad' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='ore' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content=' programmer' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='."' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='' response_metadata={'finish_reason': 'stop', 'model_name': 'llama-3.3-70b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        ```
 
     Async:
-        .. code-block:: python
+        ```python
+        await llm.ainvoke(messages)
 
-            await llm.ainvoke(messages)
+        # stream:
+        # async for chunk in (await llm.astream(messages))
 
-            # stream:
-            # async for chunk in (await llm.astream(messages))
+        # batch:
+        # await llm.abatch([messages])
+        ```
 
-            # batch:
-            # await llm.abatch([messages])
-
-        .. code-block:: python
-
-            AIMessage(
-                content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
-                response_metadata={
-                    'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                    'model_name': 'llama-3.3-70b',
-                    'system_fingerprint': 'fp_679dff74c0',
-                    'finish_reason': 'stop',
-                },
-                id='run-377c2887-30ef-417e-b0f5-83efc8844f12-0',
-                usage_metadata={'input_tokens': 32, 'output_tokens': 20, 'total_tokens': 52})
+        ```python
+        AIMessage(
+            content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
+            response_metadata={
+                'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
+                'model_name': 'llama-3.3-70b',
+                'system_fingerprint': 'fp_679dff74c0',
+                'finish_reason': 'stop',
+            },
+            id='run-377c2887-30ef-417e-b0f5-83efc8844f12-0',
+            usage_metadata={'input_tokens': 32, 'output_tokens': 20, 'total_tokens': 52})
+        ```
 
     Tool calling:
-        .. code-block:: python
+        ```python
+        from langchain_core.pydantic_v1 import BaseModel, Field
 
-            from langchain_core.pydantic_v1 import BaseModel, Field
+        llm = ChatCerebras(model="llama-3.3-70b")
 
-            llm = ChatCerebras(model="llama-3.3-70b")
+        class GetWeather(BaseModel):
+            '''Get the current weather in a given location'''
 
-            class GetWeather(BaseModel):
-                '''Get the current weather in a given location'''
-
-                location: str = Field(
-                    ..., description="The city and state, e.g. San Francisco, CA"
-                )
-
-            class GetPopulation(BaseModel):
-                '''Get the current population in a given location'''
-
-                location: str = Field(
-                    ..., description="The city and state, e.g. San Francisco, CA"
-                )
-
-            llm_with_tools = llm.bind_tools([GetWeather, GetPopulation])
-            ai_msg = llm_with_tools.invoke(
-                "Which city is bigger: LA or NY?"
+            location: str = Field(
+                ..., description="The city and state, e.g. San Francisco, CA"
             )
-            ai_msg.tool_calls
 
+        class GetPopulation(BaseModel):
+            '''Get the current population in a given location'''
 
-        .. code-block:: python
+            location: str = Field(
+                ..., description="The city and state, e.g. San Francisco, CA"
+            )
 
-            [
-                {
-                    'name': 'GetPopulation',
-                    'args': {'location': 'NY'},
-                    'id': 'call_m5tstyn2004pre9bfuxvom8x',
-                    'type': 'tool_call'
-                },
-                {
-                    'name': 'GetPopulation',
-                    'args': {'location': 'LA'},
-                    'id': 'call_0vjgq455gq1av5sp9eb1pw6a',
-                    'type': 'tool_call'
-                }
-            ]
+        llm_with_tools = llm.bind_tools([GetWeather, GetPopulation])
+        ai_msg = llm_with_tools.invoke(
+            "Which city is bigger: LA or NY?"
+        )
+        ai_msg.tool_calls
+        ```
+
+        ```python
+        [
+            {
+                'name': 'GetPopulation',
+                'args': {'location': 'NY'},
+                'id': 'call_m5tstyn2004pre9bfuxvom8x',
+                'type': 'tool_call'
+            },
+            {
+                'name': 'GetPopulation',
+                'args': {'location': 'LA'},
+                'id': 'call_0vjgq455gq1av5sp9eb1pw6a',
+                'type': 'tool_call'
+            }
+        ]
+        ```
 
     Structured output:
-        .. code-block:: python
+        ```python
+        from typing import Optional
 
-            from typing import Optional
-
-            from langchain_core.pydantic_v1 import BaseModel, Field
-
-
-            class Joke(BaseModel):
-                '''Joke to tell user.'''
-
-                setup: str = Field(description="The setup of the joke")
-                punchline: str = Field(description="The punchline to the joke")
-                rating: Optional[int] = Field(description="How funny the joke is, from 1 to 10")
+        from langchain_core.pydantic_v1 import BaseModel, Field
 
 
-            structured_llm = llm.with_structured_output(Joke)
-            structured_llm.invoke("Tell me a joke about cats")
+        class Joke(BaseModel):
+            '''Joke to tell user.'''
 
-        .. code-block:: python
+            setup: str = Field(description="The setup of the joke")
+            punchline: str = Field(description="The punchline to the joke")
+            rating: Optional[int] = Field(description="How funny the joke is, from 1 to 10")
 
-            Joke(
-                setup='Why was the cat sitting on the computer?',
-                punchline='To keep an eye on the mouse!',
-                rating=7
-            )
+
+        structured_llm = llm.with_structured_output(Joke)
+        structured_llm.invoke("Tell me a joke about cats")
+        ```
+
+        ```python
+        Joke(
+            setup='Why was the cat sitting on the computer?',
+            punchline='To keep an eye on the mouse!',
+            rating=7
+        )
+        ```
 
     JSON mode:
-        .. code-block:: python
+        ```python
+        json_llm = llm.bind(response_format={"type": "json_object"})
+        ai_msg = json_llm.invoke(
+            "Return a JSON object with key 'random_ints' and a value of 10 random ints in [0-99]"
+        )
+        ai_msg.content
+        ```
 
-            json_llm = llm.bind(response_format={"type": "json_object"})
-            ai_msg = json_llm.invoke(
-                "Return a JSON object with key 'random_ints' and a value of 10 random ints in [0-99]"
-            )
-            ai_msg.content
-
-        .. code-block:: python
-
-            ' {\\n"random_ints": [\\n13,\\n54,\\n78,\\n45,\\n67,\\n90,\\n11,\\n29,\\n84,\\n33\\n]\\n}'
+        ```python
+        ' {\\n"random_ints": [\\n13,\\n54,\\n78,\\n45,\\n67,\\n90,\\n11,\\n29,\\n84,\\n33\\n]\\n}'
+        ```
 
     Token usage:
-        .. code-block:: python
+        ```python
+        ai_msg = llm.invoke(messages)
+        ai_msg.usage_metadata
+        ```
 
-            ai_msg = llm.invoke(messages)
-            ai_msg.usage_metadata
-
-        .. code-block:: python
-
-            {'input_tokens': 37, 'output_tokens': 6, 'total_tokens': 43}
+        ```python
+        {'input_tokens': 37, 'output_tokens': 6, 'total_tokens': 43}
+        ```
 
     Response metadata
-        .. code-block:: python
+        ```python
+        ai_msg = llm.invoke(messages)
+        ai_msg.response_metadata
+        ```
 
-            ai_msg = llm.invoke(messages)
-            ai_msg.response_metadata
-
-        .. code-block:: python
-
-            {
-                'token_usage': {
-                    'completion_tokens': 4,
-                    'prompt_tokens': 19,
-                    'total_tokens': 23
-                    },
-                'model_name': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-                'system_fingerprint': None,
-                'finish_reason': 'eos',
-                'logprobs': None
-            }
-
+        ```python
+        {
+            'token_usage': {
+                'completion_tokens': 4,
+                'prompt_tokens': 19,
+                'total_tokens': 23
+                },
+            'model_name': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+            'system_fingerprint': None,
+            'finish_reason': 'eos',
+            'logprobs': None
+        }
+        ```
     """  # noqa: E501
 
     @property
     def lc_secrets(self) -> Dict[str, str]:
         """A map of constructor argument names to secret ids.
 
-        For example,
-            {"cerebras_api_key": "CEREBRAS_API_KEY"}
+        For example, `{"cerebras_api_key": "CEREBRAS_API_KEY"}`
         """
         return {"cerebras_api_key": "CEREBRAS_API_KEY"}
 
@@ -321,17 +318,20 @@ class ChatCerebras(BaseChatOpenAI):
 
     model_name: str = Field(alias="model")
     """Model name to use."""
+
     cerebras_api_key: Optional[SecretStr] = Field(
         alias="api_key",
         default_factory=secret_from_env("CEREBRAS_API_KEY", default=None),
     )
     """Automatically inferred from env are `CEREBRAS_API_KEY` if not provided."""
+
     cerebras_api_base: str = Field(
         default_factory=from_env("CEREBRAS_API_BASE", default=CEREBRAS_BASE_URL),
         alias="base_url",
     )
 
     cerebras_proxy: str = Field(default_factory=from_env("CEREBRAS_PROXY", default=""))
+
     reasoning_effort: Optional[Literal["low", "medium", "high"]] = Field(
         default=None,
         description=(
@@ -342,6 +342,7 @@ class ChatCerebras(BaseChatOpenAI):
         ),
     )
     """Reasoning effort level for gpt-oss-120b model."""
+
     disable_reasoning: Optional[bool] = Field(
         default=None,
         description=(
