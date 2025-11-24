@@ -1,10 +1,11 @@
 """Standard LangChain interface tests"""
 
-from typing import Type
+from typing import Literal, Type
 
 import pytest
 from langchain_core.language_models import BaseChatModel
-from langchain_standard_tests.integration_tests import ChatModelIntegrationTests
+from langchain_core.tools import BaseTool
+from langchain_tests.integration_tests import ChatModelIntegrationTests
 
 from langchain_cerebras import ChatCerebras
 
@@ -19,8 +20,10 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
         return {"model": "gpt-oss-120b"}
 
     @pytest.mark.xfail(reason=("Array input not supported"))
-    def test_tool_message_histories_list_content(self, model: BaseChatModel) -> None:
-        super().test_tool_message_histories_list_content(model)
+    def test_tool_message_histories_list_content(
+        self, model: BaseChatModel, my_adder_tool: BaseTool
+    ) -> None:
+        super().test_tool_message_histories_list_content(model, my_adder_tool)
 
     @pytest.mark.xfail(
         reason=(
@@ -28,8 +31,10 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
             "only 'auto' or 'none' are supported"
         )
     )
-    def test_structured_few_shot_examples(self, model: BaseChatModel) -> None:
-        super().test_structured_few_shot_examples(model)
+    def test_structured_few_shot_examples(
+        self, model: BaseChatModel, my_adder_tool: BaseTool
+    ) -> None:
+        super().test_structured_few_shot_examples(model, my_adder_tool)
 
     @pytest.mark.xfail(
         reason=(
@@ -37,8 +42,12 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
             "only 'auto' or 'none' are supported"
         )
     )
-    def test_structured_output(self, model: BaseChatModel) -> None:
-        super().test_structured_output(model)
+    def test_structured_output(
+        self,
+        model: BaseChatModel,
+        schema_type: Literal["pydantic", "typeddict", "json_schema"] = "pydantic",
+    ) -> None:
+        super().test_structured_output(model, schema_type)
 
     @pytest.mark.xfail(
         reason=(
@@ -46,8 +55,12 @@ class TestCerebrasStandard(ChatModelIntegrationTests):
             "only 'auto' or 'none' are supported"
         )
     )
-    async def test_structured_output_async(self, model: BaseChatModel) -> None:
-        await super().test_structured_output_async(model)
+    async def test_structured_output_async(
+        self,
+        model: BaseChatModel,
+        schema_type: Literal["pydantic", "typeddict", "json_schema"] = "pydantic",
+    ) -> None:
+        await super().test_structured_output_async(model, schema_type)
 
     @pytest.mark.xfail(
         reason=(
