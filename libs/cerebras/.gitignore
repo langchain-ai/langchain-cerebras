@@ -1,3 +1,6 @@
 __pycache__
 .mypy_cache
 .mypy_cache_test
+.venv
+.test_venv
+dist/
