@@ -16,7 +16,6 @@ from langchain_core.utils import (
 # We ignore the "unused imports" here since we want to reexport these from this package.
 from langchain_openai.chat_models.base import (
     BaseChatOpenAI,
-    _convert_chunk_to_generation_chunk,
     _handle_openai_bad_request,
 )
 from pydantic import Field, SecretStr, model_validator
@@ -450,7 +449,7 @@ class ChatCerebras(BaseChatOpenAI):
                 for chunk in response:
                     if not isinstance(chunk, dict):
                         chunk = chunk.model_dump()
-                    generation_chunk = _convert_chunk_to_generation_chunk(
+                    generation_chunk = self._convert_chunk_to_generation_chunk(
                         chunk,
                         default_chunk_class,
                         base_generation_info if is_first_chunk else {},
