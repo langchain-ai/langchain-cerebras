@@ -80,10 +80,10 @@ def test_gpt_oss_reasoning_streaming() -> None:
 
 
 def test_zai_glm_reasoning_content() -> None:
-    """Test zai-glm-4.6 reasoning content structure with a challenging problem."""
+    """Test zai-glm-4.7 reasoning content structure with a challenging problem."""
     llm = ChatCerebras(
-        model="zai-glm-4.6",
-        disable_reasoning=False,
+        model="zai-glm-4.7",
+        reasoning_effort="medium",
         temperature=0.7,
         max_tokens=500,
     )
@@ -112,16 +112,16 @@ def test_zai_glm_reasoning_content() -> None:
 
     assert has_reasoning, "Expected reasoning content block"
     assert len(reasoning_text) > 20, "Reasoning should be substantial"
-    # Note: zai-glm-4.6 may return reasoning without text content
+    # Note: zai-glm-4.7 may return reasoning without text content
     # This is valid behavior for reasoning models
     assert "reasoning" not in response.additional_kwargs
 
 
 def test_zai_glm_reasoning_streaming() -> None:
-    """Test zai-glm-4.6 reasoning content streaming with a challenging problem."""
+    """Test zai-glm-4.7 reasoning content streaming with a challenging problem."""
     llm = ChatCerebras(
-        model="zai-glm-4.6",
-        disable_reasoning=False,
+        model="zai-glm-4.7",
+        reasoning_effort="medium",
         temperature=0.7,
         max_tokens=500,
     )
@@ -139,17 +139,18 @@ def test_zai_glm_reasoning_streaming() -> None:
             full_text += chunk.content
 
     assert len(full_reasoning) > 20, "Reasoning should be substantial"
-    # Note: zai-glm-4.6 may return only reasoning without text content
+    # Note: zai-glm-4.7 may return only reasoning without text content
     # This is valid behavior for reasoning models
     logger.info(f"Streamed Reasoning: {full_reasoning[:200]}...")
     if full_text:
         logger.info(f"Streamed Text: {full_text}")
 
 
-def test_llama_no_reasoning_content() -> None:
-    """Test llama3.3-70b (non-reasoning model) doesn't break."""
+def test_zai_glm_no_reasoning_content() -> None:
+    """Test disabling reasoning for zai-glm-4.7."""
     llm = ChatCerebras(
-        model="llama3.3-70b",
+        model="zai-glm-4.7",
+        reasoning_effort="none",
         temperature=0.7,
         max_tokens=200,
     )
@@ -165,10 +166,11 @@ def test_llama_no_reasoning_content() -> None:
     logger.info(f"Response: {response.content}")
 
 
-def test_llama_no_reasoning_streaming() -> None:
-    """Test llama3.3-70b (non-reasoning model) streaming doesn't break."""
+def test_zai_glm_no_reasoning_streaming() -> None:
+    """Test disabling reasoning for zai-glm-4.7 while streaming."""
     llm = ChatCerebras(
-        model="llama3.3-70b",
+        model="zai-glm-4.7",
+        reasoning_effort="none",
         temperature=0.7,
         max_tokens=200,
     )
