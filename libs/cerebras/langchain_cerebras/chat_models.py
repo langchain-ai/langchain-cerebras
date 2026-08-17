@@ -289,23 +289,6 @@ class ChatCerebras(BaseChatOpenAI):
                     elif block["type"] == "text":
                         print(f"Answer: {block['text']}")
 
-    Reasoning with zai-glm-4.7:
-        .. code-block:: python
-
-            llm = ChatCerebras(
-                model="zai-glm-4.7",
-                reasoning_effort="medium"
-            )
-            response = llm.invoke("Explain quantum computing")
-
-            # Same access pattern for reasoning content
-            for block in response.content:
-                if isinstance(block, dict):
-                    if block["type"] == "reasoning_content":
-                        print(f"Reasoning: {block['reasoning_content']['text']}")
-                    elif block["type"] == "text":
-                        print(f"Answer: {block['text']}")
-
     Reasoning with streaming:
         .. code-block:: python
 
