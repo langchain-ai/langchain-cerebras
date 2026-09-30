@@ -52,10 +52,12 @@ class ChatCerebras(BaseChatOpenAI):
             Sampling temperature.
         max_tokens: Optional[int]
             Max number of tokens to generate.
-        reasoning_effort: Optional[Literal["low", "medium", "high"]]
-            Level of reasoning effort for gpt-oss-120b model.
+        max_completion_tokens: Optional[int]
+            Exact completion-token limit sent to Cerebras.
+        reasoning_effort: Optional[Literal["none", "low", "medium", "high"]]
+            Level of reasoning effort. Supported values depend on the selected model.
         disable_reasoning: Optional[bool]
-            Whether to disable reasoning for zai-glm-4.6 model.
+            Deprecated compatibility alias. Use `reasoning_effort="none"`.
 
     Key init args — client params:
         timeout: Union[float, Tuple[float, float], Any, None]
@@ -291,12 +293,12 @@ class ChatCerebras(BaseChatOpenAI):
                     elif block["type"] == "text":
                         print(f"Answer: {block['text']}")
 
-    Reasoning with zai-glm-4.6:
+    Disabling reasoning for a model that supports it:
         .. code-block:: python
 
             llm = ChatCerebras(
-                model="zai-glm-4.6",
-                disable_reasoning=False  # Enable reasoning
+                model="gemma-4-31b",
+                reasoning_effort="none"
             )
             response = llm.invoke("Explain quantum computing")
 
@@ -377,14 +379,18 @@ class ChatCerebras(BaseChatOpenAI):
     def _default_params(self) -> Dict[str, Any]:
         """Get the default parameters for calling the Cerebras API."""
         params = super()._default_params
-        # Add Cerebras-specific reasoning parameters if set
-        # Note: reasoning_effort is already handled by BaseChatOpenAI
-        # disable_reasoning is a nonstandard parameter for zai-glm-4.6
-        # and must be passed via extra_body
+        if self.max_completion_tokens is not None:
+            params.pop("max_tokens", None)
+            params["max_completion_tokens"] = self.max_completion_tokens
+
         if self.disable_reasoning is not None:
-            extra_body = params.get("extra_body") or {}
-            extra_body["disable_reasoning"] = self.disable_reasoning
-            params["extra_body"] = extra_body
+            warnings.warn(
+                "disable_reasoning is deprecated; use reasoning_effort='none' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if self.disable_reasoning and self.reasoning_effort is None:
+                params["reasoning_effort"] = "none"
         return params
 
     model_name: str = Field(alias="model")
@@ -403,11 +409,17 @@ class ChatCerebras(BaseChatOpenAI):
 
     cerebras_proxy: str = Field(default_factory=from_env("CEREBRAS_PROXY", default=""))
 
-    reasoning_effort: Optional[Literal["low", "medium", "high"]] = Field(
+    max_completion_tokens: Optional[int] = Field(
+        default=None,
+        description="Exact completion-token limit sent to the Cerebras API.",
+    )
+
+    reasoning_effort: Optional[Literal["none", "low", "medium", "high"]] = Field(
         default=None,
         description=(
-            "Level of reasoning effort for the gpt-oss-120b model. "
-            "Options: 'low' (minimal reasoning, faster), "
+            "Level of reasoning effort for the selected model. "
+            "Options: 'none' (disable reasoning when supported), "
+            "'low' (minimal reasoning, faster), "
             "'medium' (moderate reasoning), "
             "or 'high' (extensive reasoning, more thorough analysis)."
         ),
@@ -417,11 +429,10 @@ class ChatCerebras(BaseChatOpenAI):
     disable_reasoning: Optional[bool] = Field(
         default=None,
         description=(
-            "Whether to disable reasoning for the zai-glm-4.6 model. "
-            "Set to True to disable reasoning, False (default) to enable."
+            "Deprecated compatibility alias. Set reasoning_effort='none' instead."
         ),
     )
-    """Disable reasoning for zai-glm-4.6 model."""
+    """Deprecated compatibility alias for reasoning_effort='none'."""
 
     def _stream(
         self,
