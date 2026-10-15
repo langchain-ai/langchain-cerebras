@@ -3,6 +3,7 @@
 import warnings
 from typing import (
     Any,
+    AsyncIterator,
     Dict,
     Iterator,
     List,
@@ -13,7 +14,10 @@ from typing import (
 )
 
 import openai
-from langchain_core.callbacks import CallbackManagerForLLMRun
+from langchain_core.callbacks import (
+    AsyncCallbackManagerForLLMRun,
+    CallbackManagerForLLMRun,
+)
 from langchain_core.language_models.chat_models import LangSmithParams
 from langchain_core.messages import AIMessageChunk, BaseMessage, BaseMessageChunk
 from langchain_core.outputs import ChatGenerationChunk, ChatResult
@@ -496,6 +500,87 @@ class ChatCerebras(BaseChatOpenAI):
             )
             if run_manager:
                 run_manager.on_llm_new_token(
+                    generation_chunk.text, chunk=generation_chunk
+                )
+            yield generation_chunk
+
+    async def _astream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        kwargs["stream"] = True
+        payload = self._get_request_payload(messages, stop=stop, **kwargs)
+        default_chunk_class: Type[BaseMessageChunk] = AIMessageChunk
+        base_generation_info = {}
+
+        if "response_format" in payload:
+            if self.include_response_headers:
+                warnings.warn(
+                    "Cannot currently include response headers when response_format is "
+                    "specified."
+                )
+            payload.pop("stream")
+            response_stream = self.root_async_client.beta.chat.completions.stream(
+                **payload
+            )
+            context_manager = response_stream
+        else:
+            if self.include_response_headers:
+                raw_response = await self.async_client.with_raw_response.create(
+                    **payload
+                )
+                response = raw_response.parse()
+                base_generation_info = {"headers": dict(raw_response.headers)}
+            else:
+                response = await self.async_client.create(**payload)
+            context_manager = response
+        try:
+            async with context_manager as response:
+                is_first_chunk = True
+                async for chunk in response:
+                    if not isinstance(chunk, dict):
+                        chunk = chunk.model_dump()
+                    generation_chunk = self._convert_chunk_to_generation_chunk(
+                        chunk,
+                        default_chunk_class,
+                        base_generation_info if is_first_chunk else {},
+                    )
+                    if generation_chunk is None:
+                        continue
+
+                    # Cerebras specific: extract reasoning from delta
+                    choices = chunk.get("choices", [])
+                    if choices:
+                        choice = choices[0]
+                        delta = choice.get("delta", {})
+                        reasoning = delta.get("reasoning")
+                        if reasoning:
+                            generation_chunk.message.additional_kwargs[
+                                "reasoning"
+                            ] = reasoning
+
+                    default_chunk_class = generation_chunk.message.__class__
+                    logprobs = (generation_chunk.generation_info or {}).get("logprobs")
+                    if run_manager:
+                        await run_manager.on_llm_new_token(
+                            generation_chunk.text,
+                            chunk=generation_chunk,
+                            logprobs=logprobs,
+                        )
+                    is_first_chunk = False
+                    yield generation_chunk
+        except openai.BadRequestError as e:
+            _handle_openai_bad_request(e)
+        if hasattr(response, "get_final_completion") and "response_format" in payload:
+            final_completion = await response.get_final_completion()
+            generation_chunk = self._get_generation_chunk_from_completion(
+                final_completion
+            )
+            if run_manager:
+                await run_manager.on_llm_new_token(
                     generation_chunk.text, chunk=generation_chunk
                 )
             yield generation_chunk
