@@ -52,10 +52,8 @@ class ChatCerebras(BaseChatOpenAI):
             Sampling temperature.
         max_tokens: Optional[int]
             Max number of tokens to generate.
-        reasoning_effort: Optional[Literal["low", "medium", "high"]]
-            Level of reasoning effort for gpt-oss-120b model.
-        disable_reasoning: Optional[bool]
-            Whether to disable reasoning for zai-glm-4.6 model.
+        reasoning_effort: Optional[Literal["none", "low", "medium", "high"]]
+            Level of reasoning effort. Use `"none"` to disable reasoning.
 
     Key init args — client params:
         timeout: Union[float, Tuple[float, float], Any, None]
@@ -70,7 +68,7 @@ class ChatCerebras(BaseChatOpenAI):
         from langchain_cerebras import ChatCerebras
 
         llm = ChatCerebras(
-            model="llama-3.3-70b",
+            model="gpt-oss-120b",
             temperature=0,
             max_tokens=None,
             timeout=None,
@@ -97,7 +95,7 @@ class ChatCerebras(BaseChatOpenAI):
             content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
             response_metadata={
                 'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                'model_name': 'llama-3.3-70b',
+                'model_name': 'gpt-oss-120b',
                 'system_fingerprint': 'fp_679dff74c0',
                 'finish_reason': 'stop',
             },
@@ -132,7 +130,7 @@ class ChatCerebras(BaseChatOpenAI):
         content='ore' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
         content=' programmer' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
         content='."' id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
-        content='' response_metadata={'finish_reason': 'stop', 'model_name': 'llama-3.3-70b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
+        content='' response_metadata={'finish_reason': 'stop', 'model_name': 'gpt-oss-120b', 'system_fingerprint': 'fp_679dff74c0'} id='run-3f9dc84e-208f-48da-b15d-e552b6759c24'
         ```
 
     Async:
@@ -151,7 +149,7 @@ class ChatCerebras(BaseChatOpenAI):
             content='The translation of "I love programming" to French is:\n\n"J\'adore programmer."',
             response_metadata={
                 'token_usage': {'completion_tokens': 20, 'prompt_tokens': 32, 'total_tokens': 52},
-                'model_name': 'llama-3.3-70b',
+                'model_name': 'gpt-oss-120b',
                 'system_fingerprint': 'fp_679dff74c0',
                 'finish_reason': 'stop',
             },
@@ -163,7 +161,7 @@ class ChatCerebras(BaseChatOpenAI):
         ```python
         from langchain_core.pydantic_v1 import BaseModel, Field
 
-        llm = ChatCerebras(model="llama-3.3-70b")
+        llm = ChatCerebras(model="gpt-oss-120b")
 
         class GetWeather(BaseModel):
             '''Get the current weather in a given location'''
@@ -291,23 +289,6 @@ class ChatCerebras(BaseChatOpenAI):
                     elif block["type"] == "text":
                         print(f"Answer: {block['text']}")
 
-    Reasoning with zai-glm-4.6:
-        .. code-block:: python
-
-            llm = ChatCerebras(
-                model="zai-glm-4.6",
-                disable_reasoning=False  # Enable reasoning
-            )
-            response = llm.invoke("Explain quantum computing")
-
-            # Same access pattern for reasoning content
-            for block in response.content:
-                if isinstance(block, dict):
-                    if block["type"] == "reasoning_content":
-                        print(f"Reasoning: {block['reasoning_content']['text']}")
-                    elif block["type"] == "text":
-                        print(f"Answer: {block['text']}")
-
     Reasoning with streaming:
         .. code-block:: python
 
@@ -373,20 +354,6 @@ class ChatCerebras(BaseChatOpenAI):
         params["ls_provider"] = "cerebras"
         return params
 
-    @property
-    def _default_params(self) -> Dict[str, Any]:
-        """Get the default parameters for calling the Cerebras API."""
-        params = super()._default_params
-        # Add Cerebras-specific reasoning parameters if set
-        # Note: reasoning_effort is already handled by BaseChatOpenAI
-        # disable_reasoning is a nonstandard parameter for zai-glm-4.6
-        # and must be passed via extra_body
-        if self.disable_reasoning is not None:
-            extra_body = params.get("extra_body") or {}
-            extra_body["disable_reasoning"] = self.disable_reasoning
-            params["extra_body"] = extra_body
-        return params
-
     model_name: str = Field(alias="model")
     """Model name to use."""
 
@@ -403,25 +370,16 @@ class ChatCerebras(BaseChatOpenAI):
 
     cerebras_proxy: str = Field(default_factory=from_env("CEREBRAS_PROXY", default=""))
 
-    reasoning_effort: Optional[Literal["low", "medium", "high"]] = Field(
+    reasoning_effort: Optional[Literal["none", "low", "medium", "high"]] = Field(
         default=None,
         description=(
-            "Level of reasoning effort for the gpt-oss-120b model. "
-            "Options: 'low' (minimal reasoning, faster), "
+            "Level of reasoning effort. "
+            "Options: 'none' (disable reasoning), 'low' (minimal reasoning, faster), "
             "'medium' (moderate reasoning), "
             "or 'high' (extensive reasoning, more thorough analysis)."
         ),
     )
-    """Reasoning effort level for gpt-oss-120b model."""
-
-    disable_reasoning: Optional[bool] = Field(
-        default=None,
-        description=(
-            "Whether to disable reasoning for the zai-glm-4.6 model. "
-            "Set to True to disable reasoning, False (default) to enable."
-        ),
-    )
-    """Disable reasoning for zai-glm-4.6 model."""
+    """Reasoning effort level. Use `"none"` to disable reasoning."""
 
     def _stream(
         self,
@@ -532,9 +490,7 @@ class ChatCerebras(BaseChatOpenAI):
             # Only structure content if user explicitly requested reasoning
             # via parameters, to maintain compatibility with standard tests
             # that expect string content by default.
-            should_structure = (
-                self.reasoning_effort is not None or self.disable_reasoning is False
-            )
+            should_structure = self.reasoning_effort not in (None, "none")
 
             if reasoning and should_structure:
                 reasoning_block = {
